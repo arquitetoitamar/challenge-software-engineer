@@ -1,0 +1,57 @@
+@startuml
+
+actor Cliente
+actor Corretor
+
+participant "Frontend SPA" as SPA
+participant "API Gateway" as API
+participant "AWS Lambda (Cotação)" as LambdaCotacao
+participant "DynamoDB (Corretora)" as DynamoCorretora
+participant "SQS (Fila de Contratos)" as SQS
+participant "EventBridge (Seguradora)" as EventBridge
+participant "AWS Lambda (Legado)" as LambdaLegado
+participant "Banco de Dados (Legado)" as BDLegado
+participant "SNS (Notificação)" as SNS
+participant "Webhook (Corretoras)" as Webhook
+
+== Fluxo de Cotação ==
+Cliente -> Corretor : Solicita cotação
+Corretor -> SPA : Acessa sistema da corretora
+SPA -> API : Envia requisição de cotação
+API -> LambdaCotacao : Processa cotação
+LambdaCotacao -> DynamoCorretora : Salva dados da cotação
+DynamoCorretora --> LambdaCotacao : Retorna ID da cotação
+LambdaCotacao --> API : Retorna cotação para o frontend
+API --> SPA : Exibe cotação ao corretor
+SPA --> Corretor : Retorna cotação ao cliente
+
+== Fluxo de Contratação ==
+Cliente -> Corretor : Solicita contratação do seguro
+Corretor -> SPA : Envia pedido de contratação
+SPA -> API : Envia dados do contrato
+API -> LambdaCotacao : Processa contratação
+LambdaCotacao -> DynamoCorretora : Salva dados do contrato
+DynamoCorretora --> LambdaCotacao : Confirmação
+LambdaCotacao -> SQS : Publica evento de contrato
+
+== Comunicação com a Seguradora ==
+SQS -> EventBridge : Contrato publicado
+EventBridge -> LambdaLegado : Invoca Lambda para integração
+LambdaLegado -> BDLegado : Salva contrato no sistema legado
+BDLegado --> LambdaLegado : Confirmação
+LambdaLegado --> EventBridge : Evento processado
+
+== Modelo Multi-Conta com Corretoras ==
+EventBridge -> Webhook : Roteia evento para a conta AWS da corretora
+note right
+  Cada corretora configura seu endpoint HTTP ou serviço EventBridge em sua conta AWS.
+  A seguradora gerencia permissões IAM para integração segura e escalável.
+end note
+Webhook -> "Corretora (Conta Separada)" : Recebe status do contrato
+"Corretora (Conta Separada)" -> DynamoCorretora : Atualiza status no banco de dados
+
+== Notificação ao Cliente ==
+EventBridge -> SNS : Notificar cliente
+SNS -> Cliente : Envia status do contrato
+
+@enduml
