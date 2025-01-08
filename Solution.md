@@ -35,6 +35,7 @@ Este documento descreve duas soluções propostas para a modernização do ecoss
 3. Um job processa os dados e os publica em uma fila SQS para a Seguradora.
 4. A Seguradora consome as mensagens da fila SQS e processa os contratos.
 5. Um tópico SNS é usado para notificar os sistemas das corretoras sobre os status das propostas.
+6. As mensagens com erro são reprocessadas e enviadas novamente para a fila com limite de retentativas
 
 ### **Pontos Positivos**
 - Simples de implementar e gerenciar.
@@ -80,18 +81,25 @@ Este documento descreve duas soluções propostas para a modernização do ecoss
 3. A proposta é publicada no tópico SNS configurado para a conta da Seguradora.
 4. Na Seguradora, uma Lambda consome o evento SNS, processa o contrato e retorna o status em uma fila SQS.
 5. Outra Lambda monitora a fila SQS e atualiza os sistemas das corretoras com os novos status.
+6. As mensagens com erro são reprocessadas e enviadas novamente para a fila com limite de retentativas
+7. O cloudwatch alarm será configurado para notificar falhas de processamento.
 
 ### **Pontos Positivos**
 - Arquitetura 100% serverless.
 - Alta escalabilidade e baixo custo (modelo pay-as-you-go).
 - Menor latência devido ao uso direto de APIs.
 - Melhor integração com sistemas modernos.
+- Todos recursos são altamente escaláveis e multi regiões
 
 ### **Infraestrutura**
 ![Solução TO BE 1](assets/proposta-2.2.PNG)
+### **Diagrama de sequência**
+![Solução TO BE 1](assets/jornadas.PNG)
+
 ### **Limitações**
 - Requer maior integração e mapeamento entre APIs das corretoras e da Seguradora.
 - Potenciais desafios de governança entre contas diferentes.
+- Não esta configurado por VPC ou por IP as comunicações
 
 ---
 
