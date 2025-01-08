@@ -94,7 +94,7 @@ Este documento descreve duas soluções propostas para a modernização do ecoss
 ### **Infraestrutura**
 ![Solução TO BE 1](assets/proposta-2.2.PNG)
 ### **Diagrama de sequência**
-![Solução TO BE 1](assets/jornadas.PNG)
+![Solução TO BE 1](assets/Jornadas.png)
 
 ### **Limitações**
 - Requer maior integração e mapeamento entre APIs das corretoras e da Seguradora.
