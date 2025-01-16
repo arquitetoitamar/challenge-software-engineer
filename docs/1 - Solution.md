@@ -28,7 +28,7 @@ Este documento descreve duas soluções propostas para a modernização do ecoss
   - Caso ocorra erro no processamento deverão logados via cloudwatch
 
 ### **Proposta 1**
-![Solução TO BE 1](assets/proposta-1.1.PNG)
+![Solução TO BE 1](../assets/proposta-1.1.PNG)
 ### **Fluxo**
 1. O corretor insere os dados de contratação na aplicação 
 2. Os dados são armazenados em um banco de dados.
@@ -48,7 +48,7 @@ Este documento descreve duas soluções propostas para a modernização do ecoss
 
 ### **Infraestrutura**
 
-![Solução TO BE 1](assets/proposta-1.2.PNG)
+![Solução TO BE 1](../assets/proposta-1.2.PNG)
 
 
 ### **Limitações**
@@ -74,7 +74,7 @@ Este documento descreve duas soluções propostas para a modernização do ecoss
   - HTTPS é usado para todas as comunicações entre sistemas.
   - Uso extensivo de criptografia KMS para proteger mensagens e dados.
 ### **Arquitetura**
-![Solução TO BE 1](assets/proposta-2.1.PNG)
+![Solução TO BE 1](../assets/proposta-2.1.PNG)
 ### **Fluxo**
 1. O corretor envia a proposta via aplicação conectada a um API Gateway.
 2. Os dados são processados em uma função Lambda que os armazena no DynamoDB.
@@ -92,9 +92,9 @@ Este documento descreve duas soluções propostas para a modernização do ecoss
 - Todos recursos são altamente escaláveis e multi regiões
 
 ### **Infraestrutura**
-![Solução TO BE 1](assets/proposta-2.2.PNG)
+![Solução TO BE 1](../assets/proposta-2.2.PNG)
 ### **Diagrama de sequência**
-![Solução TO BE 1](assets/Jornadas.png)
+![Solução TO BE 1](../assets/Jornadas.png)
 
 ### **Limitações**
 - Requer maior integração e mapeamento entre APIs das corretoras e da Seguradora.
