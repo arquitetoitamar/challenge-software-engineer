@@ -77,8 +77,6 @@ resource "aws_api_gateway_stage" "dev" {
   }
 }
 
-
-
 resource "aws_iam_role" "apigateway_xray_role" {
   name = "APIGatewayXRayRole"
 

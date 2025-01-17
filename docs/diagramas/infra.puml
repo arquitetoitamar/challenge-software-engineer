@@ -1,0 +1,42 @@
+@startuml
+
+cloud "AWS Cloud" {
+    node "VPC" {
+        rectangle "Subnets" {
+            database "RDS PostgreSQL" as rds
+            rectangle "DynamoDB Table" as dynamodb
+        }
+        queue "SQS Contract Queue" as contract_sqs
+        queue "SQS Dead Letter Queue" as contract_dlq
+    }
+    
+    node "API Gateway" {
+        rectangle "API Endpoint - /proposals" as api_gateway
+    }
+    
+    node "Lambda Functions" {
+        rectangle "store_proposal Lambda" as store_proposal
+        rectangle "process_sqs_postgres Lambda" as process_sqs_postgres
+    }
+    
+    node "SNS" {
+        queue "SNS Topic: Proposal" as sns_proposal
+    }
+    
+    node "CloudWatch" {
+        rectangle "Logs & Alarms" as cloudwatch
+    }
+    
+    store_proposal -down-> dynamodb : "PutItem"
+    store_proposal -down-> sns_proposal : "Publish"
+    sns_proposal -down-> contract_sqs : "SQS Subscription"
+    process_sqs_postgres -down-> rds : "Insert Proposals"
+    contract_sqs -down-> process_sqs_postgres : "Trigger Event"
+    contract_dlq -down-> cloudwatch : "Monitor Failures"
+    
+    api_gateway -right-> store_proposal : "Invoke Lambda"
+    store_proposal -down-> cloudwatch : "Log Execution"
+    process_sqs_postgres -down-> cloudwatch : "Log Execution"
+}
+
+@enduml
