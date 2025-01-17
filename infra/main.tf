@@ -17,6 +17,7 @@ module "rds" {
   source       = "./modules/rds"
   db_username  = "contract_user"  # Correção aplicada
   db_password  = "supersecretpassword"
+  db_host      = module.rds.rds_endpoint
   subnet_ids   = module.vpc.private_subnet_ids
   security_group_ids = [module.vpc.rds_security_group_id]
 }
@@ -50,7 +51,7 @@ module "lambda" {
   sqs_contract_queue_arn = module.sqs.contract_queue_arn
   api_gateway_execution_arn = module.api_gateway.execution_arn
   db_host               = module.rds.db_host
-  db_name               = "contract-db"
+  db_name               = "contracts"
   db_user               = "contract_user"
   db_password           = "supersecretpassword"
 }

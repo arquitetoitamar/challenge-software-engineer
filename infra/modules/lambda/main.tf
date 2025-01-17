@@ -97,6 +97,30 @@ resource "aws_iam_policy" "lambda_sns_policy" {
     ]
   })
 }
+resource "aws_iam_policy" "lambda_rds_policy" {
+  name        = "LambdaRDSAccessPolicy"
+  description = "Permite que a Lambda acesse o RDS PostgreSQL"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "rds:DescribeDBInstances",
+          "rds:Connect",
+          "rds:DescribeDBClusters"
+        ],
+        Resource = "arn:aws:rds:us-east-1:615026068056:db:contract-db"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_rds_attach" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = aws_iam_policy.lambda_rds_policy.arn
+}
 
 resource "aws_iam_role_policy_attachment" "lambda_sns_attach" {
   role       = aws_iam_role.lambda_exec.name

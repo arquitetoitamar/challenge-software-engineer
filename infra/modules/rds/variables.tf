@@ -17,3 +17,6 @@ variable "security_group_ids" {
   description = "Lista de Security Groups para o RDS"
   type        = list(string)
 }
+variable "db_host" {
+  description = "Endpoint do RDS"
+}
