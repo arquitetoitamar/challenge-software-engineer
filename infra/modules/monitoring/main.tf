@@ -11,20 +11,7 @@ resource "aws_cloudwatch_metric_alarm" "dlq_alarm" {
   alarm_actions       = [var.sns_proposal_arn]  # Correção: Usar variável em vez de recurso inexistente
 }
 
-resource "aws_cloudwatch_log_group" "apigateway_logs" {
-  name              = "/aws/apigateway/proposal-api"
-  retention_in_days = 30
 
-  tags = {
-    Environment = "production"
-    Service     = "API Gateway"
-  }
-
-  lifecycle {
-    prevent_destroy = false  # 🔥 Evita erro ao tentar recriar um log group já existente
-    ignore_changes  = [name]  # 🔥 Ignora conflitos caso o nome já exista
-  }
-}
 resource "aws_iam_role" "apigateway_cloudwatch_role" {
   name = "APIGatewayCloudWatchRole"
 

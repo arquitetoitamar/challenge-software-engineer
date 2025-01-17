@@ -37,6 +37,9 @@ module "sns" {
   contract_sqs_url = module.sqs.contract_queue_url
 }
 
+module "lambda_layer" {
+  source = "./modules/lambda_layer"
+}
 
 module "lambda" {
   source = "./modules/lambda"
@@ -47,8 +50,8 @@ module "lambda" {
   sqs_contract_queue_arn = module.sqs.contract_queue_arn
   api_gateway_execution_arn = module.api_gateway.execution_arn
   db_host               = module.rds.db_host
-  db_name               = "contractdb"
-  db_user               = "admin"
+  db_name               = "contract-db"
+  db_user               = "contract_user"
   db_password           = "supersecretpassword"
 }
 

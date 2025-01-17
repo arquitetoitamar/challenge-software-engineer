@@ -22,15 +22,6 @@ resource "aws_api_gateway_method" "post_proposal" {
   authorization = "NONE"
 }
 
-# Permitir que API Gateway invoque a Lambda
-resource "aws_lambda_permission" "apigw_lambda" {
-  statement_id  = "AllowAPIGatewayInvoke-${random_id.unique_id.hex}"  # ID único
-  action        = "lambda:InvokeFunction"
-  function_name = var.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.proposal_api.execution_arn}/*/*"
-}
-
 resource "random_id" "unique_id" {
   byte_length = 4
 }
@@ -45,6 +36,48 @@ resource "aws_api_gateway_integration" "post_proposal_lambda" {
   uri                     = "${var.lambda_proposal_arn}/invocations"
 
 }
+resource "aws_cloudwatch_log_group" "apigateway_logs" {
+  name              = "/aws/apigateway/proposal-api"
+  retention_in_days = 30
+
+  tags = {
+    Environment = "production"
+    Service     = "API Gateway"
+  }
+
+  lifecycle {
+    prevent_destroy = false  # 🔥 Evita erro ao tentar recriar um log group já existente
+    ignore_changes  = [name]  # 🔥 Ignora conflitos caso o nome já exista
+  }
+}
+resource "aws_api_gateway_stage" "dev" {
+  stage_name    = "dev"
+  rest_api_id   = aws_api_gateway_rest_api.proposal_api.id
+  deployment_id = aws_api_gateway_deployment.deployment.id
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.apigateway_logs.arn
+    format = jsonencode({
+      requestId       = "$context.requestId"
+      extendedRequestId = "$context.extendedRequestId"
+      ip              = "$context.identity.sourceIp"
+      requestTime     = "$context.requestTime"
+      httpMethod      = "$context.httpMethod"
+      resourcePath    = "$context.resourcePath"
+      status          = "$context.status"
+      responseLength  = "$context.responseLength"
+      integrationErrorMessage = "$context.integration.error"
+      integrationStatus = "$context.integration.status"
+      integrationLatency = "$context.integration.latency"
+    })
+  }
+
+  lifecycle {
+    ignore_changes = [deployment_id]  # 🔥 Ignora mudanças na `deployment_id`, evitando conflitos
+  }
+}
+
+
 
 resource "aws_iam_role" "apigateway_xray_role" {
   name = "APIGatewayXRayRole"

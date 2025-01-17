@@ -1,0 +1,1 @@
+{"errorMessage": "'Records'", "errorType": "KeyError", "requestId": "27f1f96f-73ed-40ba-ac30-f5e58aeffe49", "stackTrace": ["  File \"/var/task/store_proposal.py\", line 15, in lambda_handler\n    for record in event[\"Records\"]:\n"]}

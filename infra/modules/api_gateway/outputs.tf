@@ -5,7 +5,6 @@ output "api_gateway_invoke_url" {
 resource "aws_api_gateway_deployment" "deployment" {
   depends_on  = [aws_api_gateway_integration.post_proposal_lambda]
   rest_api_id = aws_api_gateway_rest_api.proposal_api.id
-  stage_name  = "prod"
 }
 output "execution_arn" {
   description = "ARN de execução do API Gateway"
