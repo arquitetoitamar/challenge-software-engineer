@@ -53,3 +53,15 @@ variable "sqs_status_queue_arn" {
   description = "ARN da fila SQS para atualização de status"
   type        = string
 }
+
+variable "private_subnet_ids" {
+  description = "IDs das subnets privadas para o Lambda"
+  type        = list(string)
+}
+variable "lambda_security_group_id" {
+  description = "ID do security group para o Lambda"
+  type        = string 
+}
+variable "rds_security_group_id" {
+  type = string
+}

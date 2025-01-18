@@ -53,6 +53,10 @@ resource "aws_lambda_function" "process_sqs_postgres" {
 
   layers = [module.lambda_layer.psycopg2_layer_arn]
 
+  vpc_config {
+    subnet_ids         = var.private_subnet_ids  # ✅ Corrigido para usar a variável
+    security_group_ids = [var.lambda_security_group_id]  # ✅ Corrigido para usar a variável
+  }
   environment {
     variables = {
       DB_HOST       = var.db_host
@@ -84,7 +88,15 @@ resource "aws_lambda_function" "update_status" {
 }
 
 # 🛠️ Políticas IAM
-
+## Permissão para gravar no RDS
+resource "aws_security_group_rule" "allow_lambda_rds" {
+  type              = "ingress"
+  from_port         = 5432
+  to_port           = 5432
+  protocol          = "tcp"
+  security_group_id = var.rds_security_group_id  # ✅ Agora passa a variável
+  source_security_group_id = var.lambda_security_group_id  # ✅ Corrigido para usar variável
+}
 ## Permissão para gravar no DynamoDB
 resource "aws_iam_policy" "lambda_dynamodb_policy" {
   name        = "LambdaDynamoDBAccessPolicy"
@@ -170,8 +182,44 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
     ]
   })
 }
+resource "aws_iam_policy" "lambda_vpc_access" {
+  name        = "LambdaVPCExecutionPolicy"
+  description = "Permite que a Lambda crie interfaces de rede na VPC"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+# 🛠️ security gorups
+
 
 # 🛠️ Anexar permissões às Lambdas
+resource "aws_iam_role_policy_attachment" "lambda_vpc_access_attach" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = aws_iam_policy.lambda_vpc_access.arn
+}
+
 resource "aws_iam_role_policy_attachment" "lambda_rds_attach" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = aws_iam_policy.lambda_rds_policy.arn
