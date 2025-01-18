@@ -81,9 +81,10 @@ module "lambda" {
 }
 
 module "api_gateway" {
-  source              = "./modules/api_gateway"
-  lambda_proposal_arn = module.lambda.store_proposal_arn  
-  function_name       = module.lambda.store_proposal_function_name
+  source                        = "./modules/api_gateway"
+  aws_region                    = "us-east-1"
+  lambda_proposal_function_name = module.lambda.store_proposal_function_name
+  lambda_proposal_arn           = module.lambda.store_proposal_arn
 }
 
 module "monitoring" {

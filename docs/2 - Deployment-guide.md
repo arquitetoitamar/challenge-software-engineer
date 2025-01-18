@@ -3,7 +3,8 @@
 Este documento fornece um guia detalhado para a implantação da infraestrutura AWS usando **Terraform**, incluindo a configuração de **VPC, RDS, SQS, SNS, API Gateway e funções Lambda**.
 
 ---
-
+### **Infraestrutura**
+![Solução TO BE 1](../assets/infra.PNG)
 ## **📌 Pré-requisitos**
 Antes de começar, certifique-se de que possui os seguintes itens instalados:
 

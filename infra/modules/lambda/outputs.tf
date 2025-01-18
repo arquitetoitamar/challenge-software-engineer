@@ -6,7 +6,7 @@ output "lambda_exec_role_arn" {
   value = aws_iam_role.lambda_exec.arn
 }
 output "store_proposal_arn" {
-  value = aws_lambda_function.store_proposal.invoke_arn 
+  value = aws_lambda_function.store_proposal.arn 
 }
 output "store_proposal_function_name" {
   value = aws_lambda_function.store_proposal.function_name

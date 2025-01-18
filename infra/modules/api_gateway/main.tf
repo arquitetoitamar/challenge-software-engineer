@@ -6,6 +6,9 @@ resource "aws_api_gateway_rest_api" "proposal_api" {
     types = ["REGIONAL"]
   }
 }
+resource "random_id" "unique_id" {
+  byte_length = 4
+}
 
 # Recurso /proposals
 resource "aws_api_gateway_resource" "proposals" {
@@ -22,34 +25,32 @@ resource "aws_api_gateway_method" "post_proposal" {
   authorization = "NONE"
 }
 
-resource "random_id" "unique_id" {
-  byte_length = 4
-}
-
-# Implantação da API Gateway
+# 🔹 Correção na integração da API Gateway com a Lambda
 resource "aws_api_gateway_integration" "post_proposal_lambda" {
   rest_api_id             = aws_api_gateway_rest_api.proposal_api.id
   resource_id             = aws_api_gateway_resource.proposals.id
   http_method             = aws_api_gateway_method.post_proposal.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = "${var.lambda_proposal_arn}/invocations"
-
+  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.lambda_proposal_arn}/invocations" 
 }
-resource "aws_cloudwatch_log_group" "apigateway_logs" {
-  name              = "/aws/apigateway/proposal-api"
-  retention_in_days = 30
 
-  tags = {
-    Environment = "production"
-    Service     = "API Gateway"
+# 🔹 Adicionando um `Deployment` para o estágio funcionar corretamente
+resource "aws_api_gateway_deployment" "deployment" {
+  rest_api_id = aws_api_gateway_rest_api.proposal_api.id
+
+  triggers = {
+    redeployment = sha1(jsonencode(aws_api_gateway_rest_api.proposal_api))
   }
 
   lifecycle {
-    prevent_destroy = false  # 🔥 Evita erro ao tentar recriar um log group já existente
-    ignore_changes  = [name]  # 🔥 Ignora conflitos caso o nome já exista
+    create_before_destroy = true  # Garante que o deploy não quebre entre atualizações
   }
+
+  depends_on = [aws_api_gateway_integration.post_proposal_lambda]
 }
+
+# 🔹 Configuração do estágio "dev"
 resource "aws_api_gateway_stage" "dev" {
   stage_name    = "dev"
   rest_api_id   = aws_api_gateway_rest_api.proposal_api.id
@@ -73,10 +74,36 @@ resource "aws_api_gateway_stage" "dev" {
   }
 
   lifecycle {
-    ignore_changes = [deployment_id]  # 🔥 Ignora mudanças na `deployment_id`, evitando conflitos
+    ignore_changes = [deployment_id]
   }
 }
 
+# 🔹 Logs do API Gateway
+resource "aws_cloudwatch_log_group" "apigateway_logs" {
+  name              = "/aws/apigateway/proposal-api"
+  retention_in_days = 30
+
+  tags = {
+    Environment = "production"
+    Service     = "API Gateway"
+  }
+
+  lifecycle {
+    prevent_destroy = false
+    ignore_changes  = [name]
+  }
+}
+
+# 🔹 Permissão para API Gateway invocar a Lambda `store_proposal`
+resource "aws_lambda_permission" "apigw_lambda" {
+  statement_id  = "AllowAPIGatewayInvoke-${random_id.unique_id.hex}"
+  action        = "lambda:InvokeFunction"
+  function_name = var.lambda_proposal_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.proposal_api.execution_arn}/*/*"
+}
+
+# 🔹 Permissão para API Gateway usar o X-Ray
 resource "aws_iam_role" "apigateway_xray_role" {
   name = "APIGatewayXRayRole"
 

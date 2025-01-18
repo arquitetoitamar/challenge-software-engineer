@@ -11,8 +11,11 @@ terraform apply -auto-approve
 ## Testando a API Gateway
 ### Enviar uma proposta via API
 ```sh
-curl -X POST "https://abcd1234.execute-api.us-east-1.amazonaws.com/prod/proposals" -H "Content-Type: application/json" -d '{"proposal_id": "505", "value": 5000, "client": "Gabriela Souza"}'
+
+curl --location 'https://    6i6olcii03.execute-api.    us-east-1.amazonaws.com/dev/    proposals' \--header 'Content-Type:     application/json' \--data '{  "proposal_id": "123",  "value": "5000",  "client": "João Silva",  "proposal_status": "pending"}'
 ```
+### **Postman**
+![Request api gateway](../assets/postman.jpg)
 
 ## Testando o Fluxo de Mensagens para a Fila SQS
 ### Enviar uma proposta para a fila SQS
@@ -24,6 +27,12 @@ aws sqs send-message --queue-url https://sqs.us-east-1.amazonaws.com/61502606805
 ```sh
 aws dynamodb scan --table-name proposals_table
 ```
+### **proposal_table**
+![Dynamodb table](../assets/proposal_table.jpg)
+
+
+### **RDS postgres**
+![RDS postgres banco legado](../assets/rds.PNG)
 
 ## Testando a DLQ (Dead Letter Queue)
 ### Enviando Mensagem para a Fila Normal

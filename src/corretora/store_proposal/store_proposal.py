@@ -14,33 +14,44 @@ dynamodb = boto3.resource("dynamodb")
 sns = boto3.client("sns")
 
 # Carregar variáveis de ambiente
-TABLE_NAME = os.environ.get("TABLE_NAME")
-SNS_TOPIC_ARN = os.environ.get("SNS_TOPIC_ARN")
+TABLE_NAME = os.getenv("TABLE_NAME")
+SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
+
+if not TABLE_NAME or not SNS_TOPIC_ARN:
+    raise ValueError("❌ Erro de configuração: TABLE_NAME ou SNS_TOPIC_ARN não definidos.")
+
 table = dynamodb.Table(TABLE_NAME)
 
+
 def lambda_handler(event, context):
-    responses = []
+    """Processa requisições do API Gateway, armazena propostas no DynamoDB e publica no SNS."""
+
+    logger.info("📩 Evento recebido: %s", json.dumps(event))
 
     try:
-        # O corpo da requisição vem no campo "body" no API Gateway
+        # Valida se há um corpo de requisição
         body = event.get("body", "{}")
+        if not body:
+            return {
+                "statusCode": 400,
+                "body": json.dumps({"status": "Error", "message": "Corpo da requisição vazio."})
+            }
 
         # Se o body for uma string JSON, converte para dicionário
-        if isinstance(body, str):
-            message_body = json.loads(body)
-        else:
-            message_body = body  # Já é um dicionário
+        message_body = json.loads(body) if isinstance(body, str) else body
 
+        # Criar um UUID único para a proposta
         proposal_id = str(uuid.uuid4())
         timestamp = int(time.time())
 
+        # Estrutura do item para o DynamoDB
         item = {
             "proposal_id": proposal_id,
             "created_at": timestamp,
             "data": message_body
         }
 
-        # ✅ Salvar no DynamoDB com tratamento de erro
+        # ✅ Salvar no DynamoDB
         try:
             table.put_item(Item=item)
             logger.info(f"✅ Proposta {proposal_id} armazenada no DynamoDB.")
@@ -51,7 +62,7 @@ def lambda_handler(event, context):
                 "body": json.dumps({"status": "DynamoDB_Error", "error": str(e)})
             }
 
-        # ✅ Publicar no SNS com tratamento de erro
+        # ✅ Publicar no SNS
         try:
             sns.publish(
                 TopicArn=SNS_TOPIC_ARN,
@@ -69,7 +80,9 @@ def lambda_handler(event, context):
             "statusCode": 200,
             "body": json.dumps({
                 "status": "Success",
-                "proposal_id": proposal_id
+                "proposal_id": proposal_id,
+                "created_at": timestamp,
+                "message": "Proposta criada com sucesso!"
             })
         }
 
