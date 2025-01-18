@@ -57,9 +57,3 @@ resource "aws_iam_policy" "sqs_policy" {
     ]
   })
 }
-
-resource "aws_lambda_event_source_mapping" "sqs_trigger" {
-  event_source_arn = var.contract_queue_arn  # Correção: Usando variável
-  function_name    = var.process_sqs_postgres_arn  # Correção: Usando variável
-  batch_size       = 10
-}

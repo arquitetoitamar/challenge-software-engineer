@@ -43,3 +43,13 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "sqs_status_queue_url" {
+  description = "URL da fila SQS para atualização de status"
+  type        = string
+}
+
+variable "sqs_status_queue_arn" {
+  description = "ARN da fila SQS para atualização de status"
+  type        = string
+}

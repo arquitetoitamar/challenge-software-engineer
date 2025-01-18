@@ -14,10 +14,12 @@ resource "aws_iam_role" "lambda_exec" {
     ]
   })
 }
+
 resource "random_id" "unique_id" {
   byte_length = 4
 }
 
+# 🚀 Lambda store_proposal (Criação de propostas)
 resource "aws_lambda_function" "store_proposal" {
   function_name = "store-proposal"
   handler       = "store_proposal.lambda_handler"
@@ -25,7 +27,7 @@ resource "aws_lambda_function" "store_proposal" {
   role          = aws_iam_role.lambda_exec.arn
   filename      = "${path.module}/store_proposal.zip"
 
-  source_code_hash = filebase64sha256("${path.module}/store_proposal.zip")  # 🔥 Garante que a Lambda seja atualizada se o ZIP mudar
+  source_code_hash = filebase64sha256("${path.module}/store_proposal.zip")
 
   environment {
     variables = {
@@ -34,9 +36,12 @@ resource "aws_lambda_function" "store_proposal" {
     }
   }
 }
+
 module "lambda_layer" {
   source = "../lambda_layer"
 }
+
+# 🚀 Lambda process_sqs_postgres (Processar Propostas e enviar para status_queue)
 resource "aws_lambda_function" "process_sqs_postgres" {
   function_name = "process-sqs-postgres"
   handler       = "process_sqs_postgres.lambda_handler"
@@ -44,9 +49,8 @@ resource "aws_lambda_function" "process_sqs_postgres" {
   role          = aws_iam_role.lambda_exec.arn
   filename      = "${path.module}/process_sqs_postgres.zip"
 
-  source_code_hash = filebase64sha256("${path.module}/process_sqs_postgres.zip")  # 🔥 Garante atualização automática
+  source_code_hash = filebase64sha256("${path.module}/process_sqs_postgres.zip")
 
-  # 🔥 Adiciona a camada psycopg2
   layers = [module.lambda_layer.psycopg2_layer_arn]
 
   environment {
@@ -56,13 +60,35 @@ resource "aws_lambda_function" "process_sqs_postgres" {
       DB_USER       = var.db_user
       DB_PASSWORD   = var.db_password
       SQS_QUEUE_URL = var.sqs_contract_queue_url
+      STATUS_QUEUE_URL = var.sqs_status_queue_url
     }
   }
 }
 
+# 🚀 Nova Lambda update_status (Atualizar status no DynamoDB)
+resource "aws_lambda_function" "update_status" {
+  function_name = "update-status"
+  handler       = "update_status.lambda_handler"
+  runtime       = "python3.9"
+  role          = aws_iam_role.lambda_exec.arn
+  filename      = "${path.module}/update_status.zip"
+
+  source_code_hash = filebase64sha256("${path.module}/update_status.zip")
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE_NAME = var.dynamodb_table_name
+      STATUS_QUEUE_URL = var.sqs_status_queue_url
+    }
+  }
+}
+
+# 🛠️ Políticas IAM
+
+## Permissão para gravar no DynamoDB
 resource "aws_iam_policy" "lambda_dynamodb_policy" {
   name        = "LambdaDynamoDBAccessPolicy"
-  description = "Permite que a Lambda armazene dados no DynamoDB"
+  description = "Permite que a Lambda armazene e atualize dados no DynamoDB"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -80,6 +106,8 @@ resource "aws_iam_policy" "lambda_dynamodb_policy" {
     ]
   })
 }
+
+## Permissão para publicar no SNS
 resource "aws_iam_policy" "lambda_sns_policy" {
   name        = "LambdaSNSPublishPolicy"
   description = "Permite que a Lambda publique mensagens no SNS"
@@ -97,6 +125,8 @@ resource "aws_iam_policy" "lambda_sns_policy" {
     ]
   })
 }
+
+## Permissão para acessar PostgreSQL no RDS
 resource "aws_iam_policy" "lambda_rds_policy" {
   name        = "LambdaRDSAccessPolicy"
   description = "Permite que a Lambda acesse o RDS PostgreSQL"
@@ -117,6 +147,31 @@ resource "aws_iam_policy" "lambda_rds_policy" {
   })
 }
 
+## Permissão para ler filas SQS
+resource "aws_iam_policy" "lambda_sqs_policy" {
+  name        = "LambdaSQSAccessPolicy"
+  description = "Permissões para a Lambda ler mensagens do SQS"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ],
+        Resource = [
+          var.sqs_contract_queue_arn,
+          var.sqs_status_queue_arn
+        ]
+      }
+    ]
+  })
+}
+
+# 🛠️ Anexar permissões às Lambdas
 resource "aws_iam_role_policy_attachment" "lambda_rds_attach" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = aws_iam_policy.lambda_rds_policy.arn
@@ -132,7 +187,30 @@ resource "aws_iam_role_policy_attachment" "lambda_dynamodb_attach" {
   policy_arn = aws_iam_policy.lambda_dynamodb_policy.arn
 }
 
-# Permissão para API Gateway invocar a Lambda store_proposal
+resource "aws_iam_role_policy_attachment" "lambda_sqs_attach" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = aws_iam_policy.lambda_sqs_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_logging" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# 🛠️ Conectar Lambdas às filas SQS
+resource "aws_lambda_event_source_mapping" "sqs_trigger" {
+  event_source_arn = var.sqs_contract_queue_arn
+  function_name    = aws_lambda_function.process_sqs_postgres.arn
+  batch_size       = 10
+}
+
+resource "aws_lambda_event_source_mapping" "status_sqs_trigger" {
+  event_source_arn = var.sqs_status_queue_arn
+  function_name    = aws_lambda_function.update_status.arn
+  batch_size       = 10
+}
+
+# 📌 Configuração para API Gateway chamar a Lambda store_proposal
 resource "aws_lambda_permission" "apigw_lambda" {
   statement_id  = "AllowAPIGatewayInvoke-${random_id.unique_id.hex}"
   action        = "lambda:InvokeFunction"
@@ -140,50 +218,9 @@ resource "aws_lambda_permission" "apigw_lambda" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${var.api_gateway_execution_arn}/*/*"
 }
-# Configuração para que a Lambda process_sqs_postgres leia mensagens da SQS
-resource "aws_lambda_event_source_mapping" "sqs_trigger" {
-  event_source_arn = var.sqs_contract_queue_arn
-  function_name    = aws_lambda_function.process_sqs_postgres.arn
-  batch_size       = 10
 
-  # Correção: evita recriação se o mapeamento já existir
-  depends_on = [aws_lambda_function.process_sqs_postgres]
-}
-
-resource "aws_iam_policy" "lambda_sqs_policy" {
-  name        = "LambdaSQSAccessPolicy"
-  description = "Permissões para a Lambda ler mensagens do SQS"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = [
-          "sqs:ReceiveMessage",
-          "sqs:DeleteMessage",
-          "sqs:GetQueueAttributes"
-        ],
-        Resource = var.sqs_contract_queue_arn
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_sqs_attach" {
-  role       = aws_iam_role.lambda_exec.name
-  policy_arn = aws_iam_policy.lambda_sqs_policy.arn
-}
-resource "aws_iam_role_policy_attachment" "lambda_logging" {
-  role       = aws_iam_role.lambda_exec.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
+# 🚀 Criar logs para monitoramento
 resource "aws_cloudwatch_log_group" "lambda_logs" {
   name              = "/aws/lambda/${aws_lambda_function.store_proposal.function_name}"
   retention_in_days = 30
-
-  lifecycle {
-    prevent_destroy = false
-    ignore_changes  = [name]
-  }
 }

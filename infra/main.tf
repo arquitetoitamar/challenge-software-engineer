@@ -27,9 +27,11 @@ module "dynamodb" {
 }
 
 module "sqs" {
-  source = "./modules/sqs"
-  contract_queue_arn = module.sqs.contract_queue_arn
-  process_sqs_postgres_arn = module.lambda.process_sqs_postgres_arn  
+  source                   = "./modules/sqs"
+  contract_queue_arn       = module.sqs.contract_queue_arn
+  contract_queue_url       = module.sqs.contract_queue_url
+  process_sqs_postgres_arn = module.lambda.process_sqs_postgres_arn 
+
 }
 
 module "sns" {
@@ -41,26 +43,26 @@ module "sns" {
 module "lambda_layer" {
   source = "./modules/lambda_layer"
 }
-
 module "lambda" {
-  source = "./modules/lambda"
-
-  dynamodb_table_name    = module.dynamodb.table_name
-  sns_proposal_arn       = module.sns.sns_proposal_arn
-  sqs_contract_queue_url = module.sqs.contract_queue_url
-  sqs_contract_queue_arn = module.sqs.contract_queue_arn
+  source                  = "./modules/lambda"
+  dynamodb_table_name     = module.dynamodb.table_name
+  sns_proposal_arn        = module.sns.sns_proposal_arn
+  sqs_contract_queue_url  = module.sqs.contract_queue_url
+  sqs_contract_queue_arn  = module.sqs.contract_queue_arn
+  sqs_status_queue_url    = module.sqs.status_queue_url 
+  sqs_status_queue_arn    = module.sqs.status_queue_arn 
   api_gateway_execution_arn = module.api_gateway.execution_arn
-  db_host               = module.rds.db_host
-  db_name               = "contracts"
-  db_user               = "contract_user"
-  db_password           = "supersecretpassword"
+  db_host                = module.rds.db_host
+  db_name                = "contracts"
+  db_user                = "contract_user"
+  db_password            = "supersecretpassword"
 }
 
 
 module "api_gateway" {
   source              = "./modules/api_gateway"
   lambda_proposal_arn = module.lambda.store_proposal_arn  
-  function_name       = "store-proposal"
+  function_name       = module.lambda.store_proposal_function_name
 }
 
 module "monitoring" {

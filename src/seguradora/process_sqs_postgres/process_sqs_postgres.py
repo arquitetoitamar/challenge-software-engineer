@@ -13,16 +13,16 @@ DB_HOST = os.getenv('DB_HOST')
 DB_NAME = os.getenv('DB_NAME')
 DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
-
+print(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
 # Conectar ao SQS
 sqs = boto3.client("sqs")
 QUEUE_URL = os.getenv("SQS_QUEUE_URL")
-
+STATUS_QUEUE_URL = os.getenv("STATUS_QUEUE_URL")  # Fila de status
 
 def lambda_handler(event, context):
     """Função Lambda para processar mensagens do SQS e armazená-las no PostgreSQL."""
-    
-    if not DB_HOST or not DB_NAME or not DB_USER or not DB_PASSWORD or not QUEUE_URL:
+    print("Iniciando processamento...")
+    if not DB_HOST or not DB_NAME or not DB_USER or not DB_PASSWORD or not QUEUE_URL or not STATUS_QUEUE_URL:
         logger.error("Erro de configuração: Variáveis de ambiente ausentes")
         return {
             "statusCode": 500,
@@ -39,7 +39,7 @@ def lambda_handler(event, context):
         )
         cursor = conn.cursor()
         logger.info("Conexão com o PostgreSQL estabelecida.")
-
+        print("Conexão com o PostgreSQL estabelecida.")
     except Exception as e:
         logger.error(f"Erro ao conectar ao banco de dados: {str(e)}")
         return {
@@ -52,7 +52,7 @@ def lambda_handler(event, context):
         for record in event.get("Records", []):
             try:
                 message_body = json.loads(record["body"])
-                
+                print(f"Processando mensagem: {message_body}")
                 # Validação dos campos necessários
                 proposal_id = message_body.get("proposal_id")
                 client_name = message_body.get("data", {}).get("client")
@@ -65,6 +65,14 @@ def lambda_handler(event, context):
                 sql = "INSERT INTO proposals (proposal_id, client_name, proposal_value) VALUES (%s, %s, %s)"
                 cursor.execute(sql, (proposal_id, client_name, proposal_value))
                 logger.info(f"Proposta {proposal_id} inserida com sucesso.")
+
+                # Adicionar status e publicar na fila de status
+                message_body["proposal_status"] = "success"
+                sqs.send_message(
+                    QueueUrl=STATUS_QUEUE_URL,
+                    MessageBody=json.dumps(message_body)
+                )
+                logger.info(f"Proposta {proposal_id} enviada para fila de status.")
 
             except json.JSONDecodeError as e:
                 logger.error(f"Erro ao decodificar JSON da mensagem: {str(e)}")

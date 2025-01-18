@@ -7,13 +7,7 @@ resource "aws_dynamodb_table" "proposals" {
     type = "S"
   }
 
-  attribute {
-    name = "created_at"
-    type = "N"
-  }
-
-  hash_key  = "proposal_id"
-  range_key = "created_at"
+  hash_key = "proposal_id"  # 🔥 `proposal_id` é a única chave primária agora
 
   ttl {
     attribute_name = "expiration_time"
