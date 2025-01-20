@@ -1,0 +1,51 @@
+name: Terraform Deployment
+
+on:
+  push:
+    branches:
+      - master  # Executa apenas na branch 'main'
+  pull_request:
+    branches:
+      - master  # Executa para PRs na branch 'main'
+  workflow_dispatch: # Permite execução manual
+
+jobs:
+  terraform:
+    name: "Terraform Workflow"
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: "us-east-1"  # Ajuste conforme necessário
+      TF_WORKSPACE: "default"
+
+    steps:
+      - name: 🚀 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔐 Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🏗 Instalar Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7  # Atualize para a versão desejada
+
+      - name: 🎨 Verificar formatação Terraform
+        run: terraform fmt -check
+
+      - name: 🔧 Inicializar Terraform
+        run: terraform init
+
+      - name: ✅ Validar Terraform
+        run: terraform validate
+
+      - name: 🔍 Criar plano de execução
+        run: terraform plan -out=tfplan
+
+      - name: 🚀 Aplicar infraestrutura (apenas na branch main)
+        if: github.ref == 'refs/heads/master'
+        run: terraform apply -auto-approve
