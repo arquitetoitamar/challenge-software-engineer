@@ -37,17 +37,17 @@ jobs:
         run: cd infra
         
       - name: 🎨 Verificar formatação Terraform
-        run: cd infra && terraform fmt -check
+        run: terraform fmt -check
 
       - name: 🔧 Inicializar Terraform
-        run: cd infra && terraform init
+        run: terraform init
 
       - name: ✅ Validar Terraform
-        run: cd infra && terraform validate
+        run: terraform validate
 
       - name: 🔍 Criar plano de execução
-        run: cd infra && terraform plan -out=tfplan
+        run: terraform plan -out=tfplan
 
       - name: 🚀 Aplicar infraestrutura (apenas na branch main)
         if: github.ref == 'refs/heads/master'
-        run: cd infra && terraform apply -auto-approve
+        run: terraform apply -auto-approve
