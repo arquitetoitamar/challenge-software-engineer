@@ -4,7 +4,7 @@ Este documento fornece um guia detalhado para a implantação da infraestrutura 
 
 ---
 ### **Infraestrutura**
-![Solução TO BE 1](../assets/infra.PNG)
+![Solução TO BE 1](../assets/infra.png)
 ## **📌 Pré-requisitos**
 Antes de começar, certifique-se de que possui os seguintes itens instalados:
 
