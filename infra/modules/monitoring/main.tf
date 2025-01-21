@@ -8,7 +8,7 @@ resource "aws_cloudwatch_metric_alarm" "dlq_alarm" {
   statistic           = "Sum"
   threshold           = 10
   alarm_description   = "Alerta para mensagens na DLQ"
-  alarm_actions       = [var.sns_proposal_arn]  # Correção: Usar variável em vez de recurso inexistente
+  alarm_actions       = [var.sns_proposal_arn]  
 }
 
 

@@ -1,0 +1,41 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:  # Permite execução manual via GitHub Actions
+
+jobs:
+  terraform-destroy:
+    name: "Terraform Destroy"
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: "us-east-1"  # Ajuste conforme necessário
+      TF_WORKSPACE: "default"
+
+    steps:
+      - name: 🚀 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔐 Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🏗 Instalar Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7  # Atualize para a versão desejada
+
+      - name: 📂 Navegar até a pasta 'infra'
+        run: cd infra
+
+      - name: 🔧 Inicializar Terraform
+        run: cd infra && terraform init
+
+      - name: ❌ Planejar Destruição
+        run: cd infra && terraform plan -destroy -out=tfplan-destroy
+
+      - name: 🔥 Executar Terraform Destroy
+        run: cd infra && terraform destroy -auto-approve
