@@ -22,6 +22,21 @@ module "rds" {
   security_group_ids = [module.vpc.rds_security_group_id]
 }
 
+output "database_url" {
+  description = "Database Connection URL"
+  value       = module.rds.rds_connection_url
+  sensitive   = true
+}
+
+module "flyway" {
+  source        = "./modules/flyway"
+  db_host       = module.rds.db_host
+  db_name       = "contracts"
+  db_username   = "contract_user"
+  db_password   = "supersecretpassword"
+  rds_dependency = module.rds
+}
+
 module "dynamodb" {
   source = "./modules/dynamodb"
 }
