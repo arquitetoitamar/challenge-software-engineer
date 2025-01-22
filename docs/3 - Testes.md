@@ -94,6 +94,7 @@ aws sns list-subscriptions-by-topic --topic-arn arn:aws:sns:us-east-1:6150260680
 ### Verificar se a mensagem chegou na fila SQS
 ```sh
 aws sqs receive-message --queue-url https://sqs.us-east-1.amazonaws.com/615026068056/contract-queue
+aws sqs receive-message --queue-url https://sqs.us-east-1.amazonaws.com/615026068056/status-queue
 ```
 
 ## Teste no PostgreSQL
