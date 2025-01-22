@@ -28,15 +28,6 @@ output "database_url" {
   sensitive   = true
 }
 
-module "flyway" {
-  source        = "./modules/flyway"
-  db_host       = module.rds.db_host
-  db_name       = "contracts"
-  db_username   = "contract_user"
-  db_password   = "supersecretpassword"
-  rds_dependency = module.rds
-}
-
 module "dynamodb" {
   source = "./modules/dynamodb"
 }
