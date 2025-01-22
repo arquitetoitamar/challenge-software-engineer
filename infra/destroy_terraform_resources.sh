@@ -2,6 +2,8 @@
 
 # 🚀 Script para destruir infraestrutura Terraform mesmo sem state
 
+# para casos de falha no terraform plano de rollback
+
 # ⚠️ AVISO: Isso excluirá recursos da AWS de forma irreversível. Tenha certeza antes de executar!
 
 set -e  # Para o script se algum comando falhar

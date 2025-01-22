@@ -51,13 +51,16 @@ def lambda_handler(event, context):
         # Processar mensagens do SQS
         for record in event.get("Records", []):
             try:
-                message_body = json.loads(record["body"])
+                sns_message = json.loads(record["body"])
+                message_body = json.loads(sns_message["Message"])
                 print(f"Processando mensagem: {message_body}")
+
                 # Validação dos campos necessários
                 proposal_id = message_body.get("proposal_id")
                 client_name = message_body.get("data", {}).get("client")
                 proposal_value = message_body.get("data", {}).get("value")
 
+                print(f"proposal_id: {proposal_id}, client_name: {client_name}, proposal_value: {proposal_value}")
                 if not proposal_id or not client_name or not proposal_value:
                     raise ValueError("Campos obrigatórios ausentes na mensagem")
 
@@ -68,10 +71,15 @@ def lambda_handler(event, context):
 
                 # Adicionar status e publicar na fila de status
                 message_body["proposal_status"] = "success"
+                # Confirmar as alterações no banco
+                conn.commit()
+                print("Commit realizado com sucesso.")
+                print(f"Enviando mensagem para fila de status: {message_body}")
                 sqs.send_message(
                     QueueUrl=STATUS_QUEUE_URL,
                     MessageBody=json.dumps(message_body)
                 )
+                print("Mensagem enviada para fila de status.")
                 logger.info(f"Proposta {proposal_id} enviada para fila de status.")
 
             except json.JSONDecodeError as e:
@@ -83,8 +91,7 @@ def lambda_handler(event, context):
             except Exception as e:
                 logger.error(f"Erro inesperado ao processar mensagem: {str(e)}")
 
-        # Confirmar as alterações no banco
-        conn.commit()
+        
 
     except Exception as e:
         logger.error(f"Erro ao processar mensagens do SQS: {str(e)}")

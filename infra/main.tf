@@ -22,6 +22,12 @@ module "rds" {
   security_group_ids = [module.vpc.rds_security_group_id]
 }
 
+output "database_url" {
+  description = "Database Connection URL"
+  value       = module.rds.rds_connection_url
+  sensitive   = true
+}
+
 module "dynamodb" {
   source = "./modules/dynamodb"
 }
