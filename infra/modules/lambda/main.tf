@@ -160,6 +160,29 @@ resource "aws_iam_policy" "lambda_rds_policy" {
 }
 
 ## Permissão para ler filas SQS
+resource "aws_iam_policy" "lambda_sqs_send_status_policy" {
+  name        = "LambdaSQSSendStatusPolicy"
+  description = "Permite que a Lambda process_sqs_postgres envie mensagens para a fila de status"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "sqs:SendMessage"
+        ],
+        Resource = var.sqs_status_queue_arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_sqs_send_status_attach" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = aws_iam_policy.lambda_sqs_send_status_policy.arn
+}
+
 resource "aws_iam_policy" "lambda_sqs_policy" {
   name        = "LambdaSQSAccessPolicy"
   description = "Permissões para a Lambda ler mensagens do SQS"
